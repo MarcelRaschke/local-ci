@@ -289,7 +289,7 @@
     "eslint": "^8.16.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "glob": "^7.1.7",
+    "glob": "^8.0.3",
     "husky": "^8.0.1",
     "inversify": "^6.0.1",
     "jest": "^28.1.3",
