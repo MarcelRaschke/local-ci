@@ -302,7 +302,7 @@
     "raw-loader": "^4.0.2",
     "reflect-metadata": "^0.1.13",
     "shellcheck": "^1.1.0",
-    "ts-jest": "^28.0.8",
+    "ts-jest": "^29.0.3",
     "ts-loader": "^9.2.8",
     "typescript": "^4.6.3",
     "util": "^0.12.4",
