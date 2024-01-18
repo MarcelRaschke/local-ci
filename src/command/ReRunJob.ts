@@ -1,33 +1,23 @@
-import { inject, injectable } from 'inversify';
 import type vscode from 'vscode';
-import type { Command } from './index';
-import Types from 'common/Types';
+import type { Command } from '.';
 import EditorGateway from 'gateway/EditorGateway';
 import JobProvider from 'job/JobProvider';
 import ReporterGateway from 'gateway/ReporterGateway';
 import JobRunner from 'job/JobRunner';
 import JobTerminals from 'terminal/JobTerminals';
 import JobTreeItem from 'job/JobTreeItem';
-import { DO_NOT_CONFIRM_RUN_JOB } from 'constant';
+import { DO_NOT_CONFIRM_RUN_JOB, RERUN_JOB_COMMAND } from 'constant';
 
-@injectable()
 export default class ReRunJob implements Command {
-  @inject(Types.IEditorGateway)
-  editorGateway!: EditorGateway;
-
-  @inject(JobRunner)
-  jobRunner!: JobRunner;
-
-  @inject(JobTerminals)
-  jobTerminals!: JobTerminals;
-
-  @inject(Types.IReporterGateway)
-  reporterGateway!: ReporterGateway;
-
   commandName: string;
 
-  constructor() {
-    this.commandName = 'local-ci.job.rerun';
+  constructor(
+    public editorGateway: EditorGateway,
+    public jobRunner: JobRunner,
+    public jobTerminals: JobTerminals,
+    public reporterGateway: ReporterGateway
+  ) {
+    this.commandName = RERUN_JOB_COMMAND;
   }
 
   getCallback(context: vscode.ExtensionContext, jobProvider: JobProvider) {

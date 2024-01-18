@@ -1,26 +1,20 @@
-import { inject, injectable } from 'inversify';
-import Types from 'common/Types';
 import EditorGateway from 'gateway/EditorGateway';
 import HttpGateway from 'gateway/HttpGateway';
 import ReporterGateway from 'gateway/ReporterGateway';
 import { EMAIL_ENDPOINT, EXTENSION_ID } from 'constant';
 
-@injectable()
 export default class Email {
-  @inject(Types.IEditorGateway)
-  editorGateway!: EditorGateway;
-
-  @inject(Types.IHttpGateway)
-  httpGateway!: HttpGateway;
-
-  @inject(Types.IReporterGateway)
-  repoterGateway!: ReporterGateway;
+  constructor(
+    public editorGateway: EditorGateway,
+    public httpGateway: HttpGateway,
+    public repoterGateway: ReporterGateway
+  ) {}
 
   async askForEmail(): Promise<void> {
     const enteredEmail = await this.editorGateway.editor.window.showInputBox({
       title: 'Email',
       prompt:
-        'Could you please enter your email for your free preview of Local CI?',
+        'Could you please enter your email for your free trial of Local CI?',
     });
 
     if (enteredEmail === undefined) {
@@ -50,8 +44,8 @@ export default class Email {
     const getStartedText = 'Get started';
     const buttonClicked =
       await this.editorGateway.editor.window.showInformationMessage(
-        'Thanks a lot, your free preview has started!',
-        { detail: 'Local CI free preview' },
+        'Thanks a lot, your free trial has started!',
+        { detail: 'Local CI free trial' },
         getStartedText
       );
 

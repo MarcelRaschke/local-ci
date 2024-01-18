@@ -1,20 +1,18 @@
 import * as cp from 'child_process';
-import { inject, injectable } from 'inversify';
 import EditorGateway from './EditorGateway';
 
 /**
  * Not used in the production build.
  *
  * To debug the bash commands run with ChildProcessGateway.cp.spawn(),
- * replaces ChildProcessGateway with this file in AppIoc.ts.
+ * replace ChildProcessGateway with this file in CompositionRoot.ts.
  */
-@injectable()
 export default class LoggingChildProcessGateway {
   cp;
   outputChannel;
   outputChannelId = 'Local CI';
 
-  constructor(@inject(EditorGateway) private editorGateway: EditorGateway) {
+  constructor(private editorGateway: EditorGateway) {
     this.cp = {
       ...cp,
       spawn: (
@@ -38,6 +36,13 @@ export default class LoggingChildProcessGateway {
     childProcess: cp.ChildProcessWithoutNullStreams,
     args: string[]
   ) {
+    childProcess?.stdout.on('data', (data) => {
+      this.outputChannel?.append(`Running:
+        ${args.join(`\n`)}
+      `);
+      this.outputChannel?.append(data?.toString());
+    });
+
     childProcess?.stderr.on('data', (data) => {
       this.outputChannel?.append(`Error when running:
         ${args.join(`\n`)}

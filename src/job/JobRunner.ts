@@ -1,23 +1,24 @@
-import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import type vscode from 'vscode';
 import { getBinaryPath } from '../../node/binary';
 import areTerminalsClosed from 'terminal/areTerminalsClosed';
 import BuildAgentSettings from 'config/BuildAgentSettings';
-import CommittedImages from 'containerization/CommittedImages';
+import CommandDecorators from 'terminal/CommandDecorators';
 import ConfigFile from 'config/ConfigFile';
 import EditorGateway from 'gateway/EditorGateway';
 import FinalTerminal from 'terminal/FinalTerminal';
 import FsGateway from 'gateway/FsGateway';
 import getCheckoutJobs from './getCheckoutJobs';
 import getDebuggingTerminalName from 'terminal/getDebuggingTerminalName';
-import getDynamicConfigPath from 'config/getDynamicConfigPath';
+import getDynamicConfigProcessFilePath from 'process/getDynamicConfigProcessFilePath';
 import getFinalDebuggingTerminalName from 'terminal/getFinalTerminalName';
 import getImageFromJob from 'containerization/getImageFromJob';
 import getLogFilePath from 'log/getLogFilePath';
 import getLocalVolumePath from 'containerization/getLocalVolumePath';
 import getProcessFilePath from 'process/getProcessFilePath';
+import getRepoPath from 'common/getRepoPath';
 import getTerminalName from 'terminal/getTerminalName';
+import Images from 'containerization/Images';
 import JobFactory from 'job/JobFactory';
 import JobListener from './JobListener';
 import JobProvider from 'job/JobProvider';
@@ -25,7 +26,6 @@ import JobTreeItem from './JobTreeItem';
 import LatestCommittedImage from 'containerization/LatestCommittedImage';
 import ParsedConfig from 'config/ParsedConfig';
 import RunningContainer from 'containerization/RunningContainer';
-import Types from 'common/Types';
 import UncommittedFile from '../containerization/UncommittedFile';
 import {
   COMMITTED_IMAGE_NAMESPACE,
@@ -37,43 +37,22 @@ import {
   getRunningContainerFunction,
 } from 'script';
 
-@injectable()
 export default class JobRunner {
-  @inject(BuildAgentSettings)
-  buildAgentSettings!: BuildAgentSettings;
-
-  @inject(CommittedImages)
-  committedImages!: CommittedImages;
-
-  @inject(ConfigFile)
-  configFile!: ConfigFile;
-
-  @inject(Types.IEditorGateway)
-  editorGateway!: EditorGateway;
-
-  @inject(FinalTerminal)
-  finalTerminal!: FinalTerminal;
-
-  @inject(Types.IFsGateway)
-  fsGateway!: FsGateway;
-
-  @inject(JobFactory)
-  jobFactory!: JobFactory;
-
-  @inject(JobListener)
-  jobListener!: JobListener;
-
-  @inject(LatestCommittedImage)
-  latestCommittedImage!: LatestCommittedImage;
-
-  @inject(ParsedConfig)
-  parsedConfig!: ParsedConfig;
-
-  @inject(RunningContainer)
-  runningContainer!: RunningContainer;
-
-  @inject(UncommittedFile)
-  uncommittedFile!: UncommittedFile;
+  constructor(
+    public buildAgentSettings: BuildAgentSettings,
+    public commandDecorators: CommandDecorators,
+    public configFile: ConfigFile,
+    public editorGateway: EditorGateway,
+    public finalTerminal: FinalTerminal,
+    public fsGateway: FsGateway,
+    public images: Images,
+    public jobFactory: JobFactory,
+    public jobListener: JobListener,
+    public latestCommittedImage: LatestCommittedImage,
+    public parsedConfig: ParsedConfig,
+    public runningContainer: RunningContainer,
+    public uncommittedFile: UncommittedFile
+  ) {}
 
   async run(
     context: vscode.ExtensionContext,
@@ -87,7 +66,7 @@ export default class JobRunner {
     }
 
     const configFilePath = await this.configFile.getPath(context);
-    const repoPath = path.dirname(path.dirname(configFilePath));
+    const repoPath = getRepoPath(configFilePath);
     const terminal = this.editorGateway.editor.window.createTerminal({
       name: getTerminalName(jobName),
       message: `Running the CircleCI® job ${jobName}…`,
@@ -103,7 +82,8 @@ export default class JobRunner {
     const processFilePath = getProcessFilePath(configFilePath);
     const parsedProcessFile = this.parsedConfig.get(processFilePath);
 
-    const dynamicConfigFilePath = getDynamicConfigPath(configFilePath);
+    const dynamicConfigFilePath =
+      getDynamicConfigProcessFilePath(configFilePath);
     const parsedDynamicConfigFile = this.parsedConfig.get(
       dynamicConfigFilePath
     );
@@ -137,15 +117,18 @@ export default class JobRunner {
       this.fsGateway.fs.mkdirSync(localVolume, { recursive: true });
     }
 
-    // This allows persisting files between jobs with persist_to_workspace and attach_workspace.
+    // This allows persisting files between jobs with persist_to_workspace and attach_workspace, and caching.
     const volume = `${localVolume}:${CONTAINER_STORAGE_DIRECTORY}`;
     const jobConfigPath = isJobInDynamicConfig
       ? dynamicConfigFilePath
       : processFilePath;
 
+    const { getPreCommand, getPostCommand, evalPreCommand, evalPostCommand } =
+      this.commandDecorators.get();
+
     terminal.sendText(
       `cat ${jobConfigPath} | docker run -i --rm mikefarah/yq -C
-      ${getBinaryPath()} local execute --job '${jobName}' --config ${jobConfigPath} -v ${volume}`
+      ${getPreCommand} ${getPostCommand} ${evalPreCommand} ${getBinaryPath()} local execute '${jobName}' --config ${jobConfigPath} -v ${volume} ${evalPostCommand}`
     );
 
     const committedImageRepo = `${COMMITTED_IMAGE_NAMESPACE}/${jobName}`;
@@ -252,7 +235,7 @@ export default class JobRunner {
     this.editorGateway.editor.window.onDidCloseTerminal(() => {
       if (areTerminalsClosed(terminal, debuggingTerminal, finalTerminal)) {
         listeningProcess.kill();
-        this.committedImages.cleanUp(committedImageRepo);
+        this.images.cleanUp(committedImageRepo);
       }
     });
   }

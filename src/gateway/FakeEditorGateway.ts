@@ -1,8 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { injectable } from 'inversify';
 
-/** Stub class for the editor. */
-@injectable()
 export default class FakeEditorGateway {
   editor = {
     commands: {
@@ -38,6 +35,9 @@ export default class FakeEditorGateway {
     workspace: {
       asRelativePath: (path: string) => path,
       findFiles: () => Promise.resolve([{ fsPath: 'one/two/' }]),
+      getConfiguration: () => {
+        return { get: (_config: string) => false }; // eslint-disable-line @typescript-eslint/no-unused-vars
+      },
       getWorkspaceFolder: () => '',
       onDidSaveTextDocument: () => null,
       registerTextDocumentContentProvider: () => null,

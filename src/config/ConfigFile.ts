@@ -1,17 +1,19 @@
-import { inject, injectable } from 'inversify';
 import type vscode from 'vscode';
-import Types from 'common/Types';
 import AllConfigFiles from './AllConfigFiles';
 import EditorGateway from 'gateway/EditorGateway';
-import { CREATE_CONFIG_FILE_COMMAND, SELECTED_CONFIG_PATH } from 'constant';
+import ReporterGateway from 'gateway/ReporterGateway';
+import {
+  CREATE_CONFIG_FILE_COMMAND,
+  SELECTED_CONFIG_PATH,
+  SELECT_REPO_COMMAND,
+} from 'constant';
 
-@injectable()
 export default class ConfigFile {
-  @inject(AllConfigFiles)
-  allConfigFiles!: AllConfigFiles;
-
-  @inject(Types.IEditorGateway)
-  editorGateway!: EditorGateway;
+  constructor(
+    public allConfigFiles: AllConfigFiles,
+    public editorGateway: EditorGateway,
+    public reporterGateway: ReporterGateway
+  ) {}
 
   /**
    * Gets the absolute path of the selected .circleci/config.yml to run the jobs on.
@@ -30,6 +32,28 @@ export default class ConfigFile {
 
     if (isConfigInWorkspace) {
       return Promise.resolve(selectedConfigPath);
+    }
+
+    if (!this.editorGateway.editor.workspace.workspaceFolders?.length) {
+      this.reporterGateway.reporter.sendTelemetryErrorEvent('noFolderOpen');
+
+      const openFolderText = 'Open folder';
+      this.editorGateway.editor.window
+        .showInformationMessage(
+          'Please open a folder so you can run Local CI',
+          { detail: 'There is no folder selected' },
+          openFolderText
+        )
+        .then((clicked) => {
+          if (clicked === openFolderText) {
+            this.reporterGateway.reporter.sendTelemetryEvent('openFolder');
+            this.editorGateway.editor.commands.executeCommand(
+              'workbench.action.files.openFileFolder'
+            );
+          }
+        });
+
+      return '';
     }
 
     const allConfigFilePaths = await this.allConfigFiles.getPaths(context);
@@ -56,17 +80,17 @@ export default class ConfigFile {
       return allConfigFilePaths[0].fsPath;
     }
 
-    const chooseRepoText = 'Choose repo';
+    const selectRepoText = 'Select repo';
     this.editorGateway.editor.window
       .showInformationMessage(
         'Please select the repo to run Local CI on',
         { detail: 'There is no repo selected to run Local CI on' },
-        chooseRepoText
+        selectRepoText
       )
       .then((clicked) => {
-        if (clicked === chooseRepoText) {
+        if (clicked === selectRepoText) {
           this.editorGateway.editor.commands.executeCommand(
-            'localCiJobs.selectRepo'
+            SELECT_REPO_COMMAND
           );
         }
       });

@@ -1,7 +1,6 @@
-import { inject, injectable } from 'inversify';
 import type vscode from 'vscode';
-import Types from 'common/Types';
 import ChildProcessGateway from 'gateway/ChildProcessGateway';
+import Images from 'containerization/Images';
 import ConfigFile from 'config/ConfigFile';
 import EditorGateway from 'gateway/EditorGateway';
 import FsGateway from 'gateway/FsGateway';
@@ -11,31 +10,23 @@ import JobTreeItem from 'job/JobTreeItem';
 import LogFile from 'log/LogFile';
 import ParsedConfig from 'config/ParsedConfig';
 import Spawn from 'common/Spawn';
-import { SUPPRESS_JOB_COMPLETE_MESSAGE } from 'constant';
+import {
+  COMMITTED_IMAGE_NAMESPACE,
+  SUPPRESS_JOB_COMPLETE_MESSAGE,
+} from 'constant';
 import { getPicardContainerFunction } from 'script';
 
-@injectable()
 export default class JobListener {
-  @inject(Types.IChildProcessGateway)
-  childProcessGateway!: ChildProcessGateway;
-
-  @inject(ConfigFile)
-  configFile!: ConfigFile;
-
-  @inject(Types.IEditorGateway)
-  editorGateway!: EditorGateway;
-
-  @inject(FsGateway)
-  fsGateway!: FsGateway;
-
-  @inject(LogFile)
-  logFile!: LogFile;
-
-  @inject(ParsedConfig)
-  parsedConfig!: ParsedConfig;
-
-  @inject(Spawn)
-  spawn!: Spawn;
+  constructor(
+    public childProcessGateway: ChildProcessGateway,
+    public images: Images,
+    public configFile: ConfigFile,
+    public editorGateway: EditorGateway,
+    public fsGateway: FsGateway,
+    public logFile: LogFile,
+    public parsedConfig: ParsedConfig,
+    public spawn: Spawn
+  ) {}
 
   listen(
     context: vscode.ExtensionContext,
@@ -52,7 +43,7 @@ export default class JobListener {
       `Log for CircleCI® job ${jobName} \n${new Date()} \n\n`
     );
     const complainToMeLink =
-      'mailto:ryan@getlocalci.com?subject=There was an error using Local CI&body=Hi Ryan, Could you help with this error I saw with Local CI: <!-- please fill in error here -->';
+      'mailto:ryan@getlocalci.com?subject=There was an error using Local CI&body=Hi Ryan, Could you help with this error in Local CI: <!-- please fill in error here -->';
 
     const process = this.childProcessGateway.cp.spawn(
       '/bin/sh',
@@ -187,6 +178,29 @@ export default class JobListener {
             });
         }
       });
+
+      if (output?.toLowerCase()?.includes('no space left on device')) {
+        this.images.cleanUp(`${COMMITTED_IMAGE_NAMESPACE}/*`);
+        this.images.cleanUp('circleci/*');
+        this.images.cleanUp('cimg/*');
+
+        const warningMessage = 'No space left on device';
+        const fixText = 'Fix by removing all stopped containers';
+        const clicked =
+          await this.editorGateway.editor.window.showWarningMessage(
+            warningMessage,
+            { detail: 'Docker probably needs more space' },
+            fixText
+          );
+
+        if (clicked === fixText) {
+          this.childProcessGateway.cp.spawn(
+            '/bin/sh',
+            ['-c', `docker container prune -f`],
+            this.spawn.getOptions()
+          );
+        }
+      }
     });
 
     return process;
@@ -210,7 +224,7 @@ export default class JobListener {
     const showJobOutput = 'Show job log';
     const complainToMeText = 'Complain to me';
     const complainToMeLink =
-      'mailto:ryan@getlocalci.com?subject=A job failed with Local Ci, and I do not know why&body=Hi Ryan, Could you help with this error I saw with a Local CI job: <!-- please fill in error here -->';
+      'mailto:ryan@getlocalci.com?subject=A job failed with Local Ci, and I do not know why&body=Hi Ryan, Could you help with this error in a Local CI job: <!-- please fill in error here -->';
     const dontShowAgain = `Don't show again`;
 
     this.editorGateway.editor.window

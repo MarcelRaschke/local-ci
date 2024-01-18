@@ -1,5 +1,5 @@
 [![Buy license key](https://img.shields.io/badge/%24-paid-orange)](https://getlocalci.com/pricing/?utm_medium=extension&utm_source=readme)
-[![30 day free preview](https://img.shields.io/badge/trial-30%20day-orange)](https://getlocalci.com/pricing/?utm_medium=extension&utm_source=readme)
+[![30 day free trial](https://img.shields.io/badge/trial-30%20day-orange)](https://getlocalci.com/pricing/?utm_medium=extension&utm_source=readme)
 [![Platform: macOS](https://img.shields.io/badge/platform-macOS-yellow)](https://en.wikipedia.org/wiki/MacOS)
 [![Requires CircleCI®](https://img.shields.io/badge/requires-CirlcleCI%C2%AE-yellow)](https://circleci.com/docs/2.0/first-steps/)
 
@@ -8,6 +8,8 @@ Debug entire CircleCI® workflows locally, with Bash access and caching between 
 All in your local, no pushing commits and waiting. Not affiliated with CircleCI®.
 
 ![Local CI Demo](https://user-images.githubusercontent.com/4063887/142807072-fe6a577e-3148-4208-afed-ebd98a2d4fb1.gif)
+
+Author: Ryan Kienstra, ryan@ryankienstra.com
 
 ## Run Jobs Locally
 
@@ -51,9 +53,9 @@ Find out in seconds whether the setup is right, all in your local.
 
 ## License Key
 
-Local CI requires a [license key](https://getlocalci.com/pricing/?utm_medium=extension&utm_source=readme) for $15 per month.
+Local CI requires a [license key](https://getlocalci.com/pricing/?utm_medium=extension&utm_source=readme) for $20 per month.
 
-But first you'll get a free 30-day preview, no credit card needed.
+But first you'll get a free 30-day trial, no credit card needed.
 
 ## Requirements
 
@@ -75,7 +77,7 @@ You can opt out of all telemetry by adding this to your VS Code `settings.json`:
 
 If you haven't opted out, here are the [telemetry events](https://github.com/getlocalci/local-ci/search?q=reporter.send) sent via [VS Code telemetry](https://code.visualstudio.com/docs/getstarted/telemetry).
 
-If you haven't entered a license key, like during the free preview, the only interaction this extension has with Local CI's site is if you optionally enter your email on first activating this extension.
+If you haven't entered a license key, like during the free trial, the only interaction this extension has with Local CI's site is if you optionally enter your email on first activating this extension.
 
 It does interact with CircleCI® and Docker to process and run the jobs.
 

@@ -1,15 +1,11 @@
-import { inject, injectable } from 'inversify';
 import OsGateway from 'gateway/OsGateway';
 import ProcessGateway from 'gateway/ProcessGateway';
-import Types from './Types';
 
-@injectable()
 export default class EnvPath {
-  @inject(Types.IOsGateway)
-  osGateway!: OsGateway;
-
-  @inject(Types.IProcessGateway)
-  processGateway!: ProcessGateway;
+  constructor(
+    public osGateway: OsGateway,
+    public processGateway: ProcessGateway
+  ) {}
 
   /**
    * Gets the environment path.
@@ -19,7 +15,7 @@ export default class EnvPath {
    * Must be whole, i.e. the left side must be the beginning of the string or :, and the right side must be the end of the string or :
    * Case-insensitive, because Mac is.
    */
-  get(): string {
+  get() {
     const path = this.processGateway.process.env.PATH || '';
 
     return this.isMac() && !/(?<=^|:)\/usr\/local\/bin(?=$|:)/i.test(path)
@@ -27,7 +23,7 @@ export default class EnvPath {
       : path;
   }
 
-  isMac(): boolean {
+  isMac() {
     return this.osGateway.os.type() === 'Darwin';
   }
 }
